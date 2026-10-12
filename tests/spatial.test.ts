@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createImage, getPixel, setPixel } from '../src/core/matrix';
 import { adaptiveContrast, meanFilter, medianFilter } from '../src/core/spatial';
 
-describe('Filtros Espaciais: Média, Mediana e Contraste Adaptativo (RF-05, RF-06, C06, C18, C21–C23)', () => {
+describe('Filtros Espaciais: Média, Mediana e Contraste Adaptativo (RF-05, RF-06, C06, C18, C21 a C23)', () => {
   it('Verificação fiel do exemplo de referência da especificação (Soma 450 vs Mediana 30)', () => {
     // Matriz 3x3 do exemplo do documento de requisitos:
     // [[ 10,  20, 30],

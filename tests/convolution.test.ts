@@ -4,7 +4,7 @@ import { sobelFilter } from '../src/core/edges';
 import { createImage, getPixel, setPixel } from '../src/core/matrix';
 import { highBoostFilter } from '../src/core/sharpening';
 
-describe('Convolução Espacial 2D e Rotação de 180° (RF-07, C19–C20)', () => {
+describe('Convolução Espacial 2D e Rotação de 180° (RF-07, C19 a C20)', () => {
   it('Máscara identidade copia a imagem fielmente', () => {
     const img = createImage(3, 3);
     setPixel(img, 1, 1, 150);

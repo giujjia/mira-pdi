@@ -20,6 +20,10 @@ export interface PixelExplanation {
   valIn: number;
   valRaw: number;
   valQuant: number;
+  neighborhoodRows?: number;
+  neighborhoodCols?: number;
+  anchorX?: number;
+  anchorY?: number;
   neighbors: number[]; // 3x3 ou n x n
   kernelWeights?: number[][];
   formulaText: string;

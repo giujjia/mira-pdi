@@ -62,7 +62,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
   const handleDownloadJSON = () => {
     const meta = {
-      project: 'MIRA — Laboratório de PDI (UNIR)',
+      project: 'MIRA: Laboratório de PDI (UNIR)',
       timestamp: new Date().toISOString(),
       dimensions: { width: image.width, height: image.height },
       operation: operationName,
@@ -92,7 +92,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         aria-modal="true"
         aria-labelledby="export-modal-title"
         tabIndex={-1}
-        className="bg-white rounded-lg border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-4 focus:outline-none"
+        className="bg-white rounded-md border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-4 focus:outline-none"
       >
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
@@ -112,7 +112,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           Gere arquivos com garantia de reprodutibilidade para o relatório final em LaTeX da disciplina de PDI.
         </p>
 
-        <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs font-mono space-y-1">
+        <div className="p-3 bg-slate-50 rounded border border-slate-200 text-xs font-mono space-y-1">
           <div>Operação: <strong className="text-teal-700">{operationName}</strong></div>
           <div>Dimensões: <strong>{image.width} × {image.height} px</strong></div>
           <div>Política de Borda: <strong>{borderPolicy}</strong></div>
@@ -121,7 +121,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         <div className="grid grid-cols-2 gap-3 pt-2">
           <button
             onClick={handleDownloadPNG}
-            className="w-full py-2.5 px-3 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+            className="w-full py-2.5 px-3 bg-teal-600 hover:bg-teal-700 text-white rounded font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
           >
             <span className="material-symbols-outlined text-sm">image</span>
             <span>Salvar Imagem (PNG)</span>
@@ -129,7 +129,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
           <button
             onClick={handleDownloadJSON}
-            className="w-full py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
+            className="w-full py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
           >
             <span className="material-symbols-outlined text-sm">description</span>
             <span>Salvar Metadados (JSON)</span>

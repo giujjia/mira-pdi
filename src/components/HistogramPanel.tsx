@@ -1,100 +1,164 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { computeHistogram, histogramEqualization, histogramExpansion } from '../core/histogram';
 import { GrayImage } from '../core/types';
 
 interface HistogramPanelProps {
   inputImage: GrayImage;
-  onApplyEqualization: (outImg: GrayImage) => void;
-  onApplyExpansion: (outImg: GrayImage) => void;
+  activeOp: 'equalize' | 'expand' | 'original';
+  onSelectOp: (op: 'equalize' | 'expand' | 'original') => void;
+  selectedLevel: number;
+  onSelectLevel: (lvl: number) => void;
 }
 
 export const HistogramPanel: React.FC<HistogramPanelProps> = ({
   inputImage,
-  onApplyEqualization,
-  onApplyExpansion
+  activeOp,
+  onSelectOp,
+  selectedLevel,
+  onSelectLevel
 }) => {
-  const [hoverBin, setHoverBin] = useState<number | null>(128);
-
-  const { hist, eqResult, lut, eqHist, maxCountIn, maxCountEq } = useMemo(() => {
+  const { histIn, histOut, lut, maxCountIn, maxCountOut } = useMemo(() => {
     const hIn = computeHistogram(inputImage);
     const eq = histogramEqualization(inputImage);
-    const hEq = computeHistogram(eq.result);
-    return {
-      hist: hIn,
-      eqResult: eq.result,
-      lut: eq.lut,
-      eqHist: hEq,
-      maxCountIn: Math.max(...hIn.counts, 1),
-      maxCountEq: Math.max(...hEq.counts, 1)
-    };
-  }, [inputImage]);
+    const exp = histogramExpansion(inputImage);
 
-  const selectedIntensity = hoverBin ?? 128;
-  const countIn = hist.counts[selectedIntensity];
-  const cdfIn = hist.cdf[selectedIntensity];
-  const eqMappedVal = lut[selectedIntensity];
+    let hOut = hIn;
+    let currentLut: number[] = new Array<number>(256).fill(0);
+
+    if (activeOp === 'equalize') {
+      hOut = computeHistogram(eq.result);
+      currentLut = eq.lut;
+    } else if (activeOp === 'expand') {
+      hOut = computeHistogram(exp);
+      const rmin = hIn.min;
+      const rmax = hIn.max;
+      const range = rmax - rmin;
+      currentLut = Array.from({ length: 256 }, (_, r) =>
+        range > 0 ? Math.round((255 * (r - rmin)) / range) : r
+      );
+    } else {
+      hOut = hIn;
+      currentLut = Array.from({ length: 256 }, (_, r) => r);
+    }
+
+    return {
+      histIn: hIn,
+      histOut: hOut,
+      lut: currentLut,
+      maxCountIn: Math.max(...hIn.counts, 1),
+      maxCountOut: Math.max(...hOut.counts, 1)
+    };
+  }, [inputImage, activeOp]);
+
+  const selectedIntensity = Math.max(0, Math.min(255, selectedLevel ?? 128));
+  const countIn = histIn.counts[selectedIntensity];
+  const cdfIn = histIn.cdf[selectedIntensity];
+  const mappedVal = lut[selectedIntensity] ?? selectedIntensity;
 
   return (
-    <div className="w-full bg-white rounded-md border border-slate-200 p-6 space-y-6 shadow-xs">
+    <div className="w-full bg-white rounded-md border border-slate-200 p-4 space-y-4 shadow-xs">
       
-      {/* Top Actions */}
-      <div className="flex flex-wrap items-center justify-between border-b border-slate-100 pb-4 gap-4">
+      {/* Cabeçalho e Seletores de Operação */}
+      <div className="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2">
         <div>
-          <h2 className="text-base font-bold text-slate-900">Análise de Histogramas & Estatísticas Globais</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Distribuição de frequências $H[r]$, probabilidade acumulada (CDF) e Look-Up Table (LUT) de equalização.
+          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-base text-[#00875a]">bar_chart</span>
+            <span>Análise de Histogramas & Estatísticas Globais</span>
+          </h2>
+          <p className="text-[11px] text-slate-500 mt-0.5">
+            Distribuição de frequências H[r], probabilidade acumulada (CDF) e Look-Up Table (LUT).
           </p>
         </div>
 
-        <div className="flex items-center gap-2 text-xs font-mono">
+        {/* Pílulas de Seleção de Operação */}
+        <div className="flex items-center bg-slate-100 p-0.5 rounded text-xs font-medium">
           <button
-            onClick={() => onApplyExpansion(histogramExpansion(inputImage))}
-            className="px-3 py-1.5 rounded-lg border border-slate-300 hover:border-teal-600 hover:text-teal-700 bg-white font-medium transition-colors"
+            onClick={() => onSelectOp('equalize')}
+            className={`px-2.5 py-1 rounded-sm transition-all cursor-pointer ${
+              activeOp === 'equalize'
+                ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
           >
-            Aplicar Expansão Linear
+            Equalização (CDF)
           </button>
           <button
-            onClick={() => onApplyEqualization(eqResult)}
-            className="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-semibold transition-colors shadow-xs"
+            onClick={() => onSelectOp('expand')}
+            className={`px-2.5 py-1 rounded-sm transition-all cursor-pointer ${
+              activeOp === 'expand'
+                ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
           >
-            Aplicar Equalização Global
+            Expansão Linear
+          </button>
+          <button
+            onClick={() => onSelectOp('original')}
+            className={`px-2.5 py-1 rounded-sm transition-all cursor-pointer ${
+              activeOp === 'original'
+                ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Original
           </button>
         </div>
       </div>
 
-      {/* Estatísticas Globais */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center text-xs font-mono">
-        <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
-          <div className="text-[10px] text-slate-400">Total de Pixels N</div>
-          <div className="text-sm font-bold text-slate-800">{hist.totalPixels.toLocaleString()}</div>
+      {/* Seletor Deslizante de Intensidade Inspecionada r */}
+      <div className="flex items-center gap-3 bg-slate-50/80 p-2.5 rounded-md border border-slate-200/80 text-xs font-mono">
+        <span className="text-[11px] text-slate-600 font-semibold shrink-0">
+          Intensidade r:
+        </span>
+        <input
+          type="range"
+          min="0"
+          max="255"
+          value={selectedIntensity}
+          onChange={(e) => onSelectLevel(parseInt(e.target.value) || 0)}
+          className="flex-1 accent-[#00875a] cursor-pointer"
+        />
+        <span className="text-xs font-bold text-[#00875a] bg-white px-2 py-0.5 rounded border border-slate-200 w-12 text-center shrink-0">
+          {selectedIntensity}
+        </span>
+      </div>
+
+      {/* Estatísticas Globais da Imagem */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-xs font-mono">
+        <div className="p-2 bg-slate-50 rounded border border-slate-200">
+          <div className="text-[10px] text-slate-400">Total N</div>
+          <div className="text-xs font-bold text-slate-800">{histIn.totalPixels.toLocaleString()}</div>
         </div>
-        <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
-          <div className="text-[10px] text-slate-400">Mínimo Observado</div>
-          <div className="text-sm font-bold text-slate-800">r_min = {hist.min}</div>
+        <div className="p-2 bg-slate-50 rounded border border-slate-200">
+          <div className="text-[10px] text-slate-400">Mínimo</div>
+          <div className="text-xs font-bold text-slate-800">r_min = {histIn.min}</div>
         </div>
-        <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
-          <div className="text-[10px] text-slate-400">Máximo Observado</div>
-          <div className="text-sm font-bold text-slate-800">r_max = {hist.max}</div>
+        <div className="p-2 bg-slate-50 rounded border border-slate-200">
+          <div className="text-[10px] text-slate-400">Máximo</div>
+          <div className="text-xs font-bold text-slate-800">r_max = {histIn.max}</div>
         </div>
-        <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
-          <div className="text-[10px] text-slate-400">Média Global (μ)</div>
-          <div className="text-sm font-bold text-teal-700">{hist.mean.toFixed(2)}</div>
+        <div className="p-2 bg-slate-50 rounded border border-slate-200">
+          <div className="text-[10px] text-slate-400">Média (μ)</div>
+          <div className="text-xs font-bold text-[#00875a]">{histIn.mean.toFixed(2)}</div>
         </div>
-        <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
-          <div className="text-[10px] text-slate-400">Desvio Padrão (σ)</div>
-          <div className="text-sm font-bold text-slate-800">{hist.stdDev.toFixed(2)}</div>
+        <div className="p-2 bg-slate-50 rounded border border-slate-200">
+          <div className="text-[10px] text-slate-400">Desvio (σ)</div>
+          <div className="text-xs font-bold text-slate-800">{histIn.stdDev.toFixed(2)}</div>
         </div>
       </div>
 
-      {/* Gráficos de Histograma SVG */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Gráficos SVG Conectados */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         
-        {/* Histograma Original */}
-        <div className="p-3 bg-slate-50 rounded-md border border-slate-200 flex flex-col items-center">
-          <div className="text-xs font-semibold text-slate-700 mb-2">Histograma de Entrada H[r]</div>
-          <div className="w-full h-36 relative">
+        {/* 1. Histograma Original H[r] */}
+        <div className="p-2.5 bg-slate-50 rounded-md border border-slate-200 flex flex-col items-center">
+          <div className="text-[11px] font-semibold text-slate-700 mb-1.5 flex items-center justify-between w-full">
+            <span>Entrada H[r]</span>
+            <span className="text-[10px] font-mono text-[#00875a]">r = {selectedIntensity}</span>
+          </div>
+          <div className="w-full h-28 relative">
             <svg viewBox="0 0 256 100" className="w-full h-full" preserveAspectRatio="none">
-              {hist.counts.map((cnt, r) => {
+              {histIn.counts.map((cnt, r) => {
                 const h = (cnt / maxCountIn) * 95;
                 const isSelected = r === selectedIntensity;
                 return (
@@ -104,59 +168,68 @@ export const HistogramPanel: React.FC<HistogramPanelProps> = ({
                     y={100 - h}
                     width={1}
                     height={h}
-                    fill={isSelected ? '#2563eb' : '#94a3b8'}
-                    onMouseEnter={() => setHoverBin(r)}
+                    fill={isSelected ? '#00875a' : '#94a3b8'}
+                    onClick={() => onSelectLevel(r)}
+                    onMouseEnter={() => onSelectLevel(r)}
                     className="cursor-pointer"
                   />
                 );
               })}
             </svg>
           </div>
-          <div className="flex justify-between w-full text-[10px] font-mono text-slate-400 mt-1">
+          <div className="flex justify-between w-full text-[9px] font-mono text-slate-400 mt-1">
             <span>0</span>
-            <span>r = {selectedIntensity}</span>
+            <span>H[{selectedIntensity}] = {countIn}</span>
             <span>255</span>
           </div>
         </div>
 
-        {/* Função de Mapeamento CDF T(r) */}
-        <div className="p-3 bg-slate-50 rounded-md border border-slate-200 flex flex-col items-center">
-          <div className="text-xs font-semibold text-teal-700 mb-2">Curva CDF T(r) = round((255/N)·∑H)</div>
-          <div className="w-full h-36 relative">
+        {/* 2. Curva CDF / Mapeamento T(r) */}
+        <div className="p-2.5 bg-slate-50 rounded-md border border-slate-200 flex flex-col items-center">
+          <div className="text-[11px] font-semibold text-[#00875a] mb-1.5 flex items-center justify-between w-full">
+            <span>Curva T(r)</span>
+            <span className="text-[10px] font-mono">T({selectedIntensity}) = {mappedVal}</span>
+          </div>
+          <div className="w-full h-28 relative">
             <svg viewBox="0 0 256 256" className="w-full h-full">
               {/* Linha diagonal de referência 1:1 */}
-              <line x1="0" y1="256" x2="256" y2="0" stroke="#cbd5e1" strokeDasharray="3 3" strokeWidth="1" />
-              {/* Curva CDF */}
+              <line x1="0" y1="256" x2="256" y2="0" stroke="#cbd5e1" strokeDasharray="3 3" strokeWidth="1.5" />
+              {/* Curva CDF / LUT */}
               <polyline
                 fill="none"
-                stroke="#2563eb"
-                strokeWidth="2"
+                stroke="#00875a"
+                strokeWidth="2.5"
                 points={lut.map((s, r) => `${r},${256 - s}`).join(' ')}
               />
               {/* Ponto selecionado */}
               <circle
                 cx={selectedIntensity}
-                cy={256 - eqMappedVal}
-                r="4"
-                fill="#2563eb"
+                cy={256 - mappedVal}
+                r="5"
+                fill="#00875a"
+                stroke="#ffffff"
+                strokeWidth="1.5"
               />
             </svg>
           </div>
-          <div className="flex justify-between w-full text-[10px] font-mono text-slate-400 mt-1">
+          <div className="flex justify-between w-full text-[9px] font-mono text-slate-400 mt-1">
             <span>(0, 0)</span>
-            <span>T({selectedIntensity}) = {eqMappedVal}</span>
+            <span>CDF = {((cdfIn / histIn.totalPixels) * 100).toFixed(1)}%</span>
             <span>(255, 255)</span>
           </div>
         </div>
 
-        {/* Histograma Equalizado */}
-        <div className="p-3 bg-slate-50 rounded-md border border-slate-200 flex flex-col items-center">
-          <div className="text-xs font-semibold text-emerald-700 mb-2">Histograma Equalizado H[s]</div>
-          <div className="w-full h-36 relative">
+        {/* 3. Histograma Equalizado / Processado H[s] */}
+        <div className="p-2.5 bg-slate-50 rounded-md border border-slate-200 flex flex-col items-center">
+          <div className="text-[11px] font-semibold text-emerald-800 mb-1.5 flex items-center justify-between w-full">
+            <span>Saída H[s]</span>
+            <span className="text-[10px] font-mono text-emerald-700">s = {mappedVal}</span>
+          </div>
+          <div className="w-full h-28 relative">
             <svg viewBox="0 0 256 100" className="w-full h-full" preserveAspectRatio="none">
-              {eqHist.counts.map((cnt, s) => {
-                const h = (cnt / maxCountEq) * 95;
-                const isSelected = s === eqMappedVal;
+              {histOut.counts.map((cnt, s) => {
+                const h = (cnt / maxCountOut) * 95;
+                const isSelected = s === mappedVal;
                 return (
                   <rect
                     key={s}
@@ -165,31 +238,40 @@ export const HistogramPanel: React.FC<HistogramPanelProps> = ({
                     width={1}
                     height={h}
                     fill={isSelected ? '#059669' : '#64748b'}
+                    onClick={() => onSelectLevel(s)}
                     className="cursor-pointer"
                   />
                 );
               })}
             </svg>
           </div>
-          <div className="flex justify-between w-full text-[10px] font-mono text-slate-400 mt-1">
+          <div className="flex justify-between w-full text-[9px] font-mono text-slate-400 mt-1">
             <span>0</span>
-            <span>s = {eqMappedVal}</span>
+            <span>H[{mappedVal}] = {histOut.counts[mappedVal] ?? 0}</span>
             <span>255</span>
           </div>
         </div>
 
       </div>
 
-      {/* Inspeção do Bin Selecionado */}
-      <div className="p-4 bg-teal-50/60 rounded-md border border-blue-100 text-xs font-mono space-y-2">
-        <div className="flex items-center justify-between text-blue-900 font-bold">
-          <span>Dedução da Look-Up Table (LUT) para o Nível r = {selectedIntensity}:</span>
-          <span className="text-emerald-700">Mapeado em s = {eqMappedVal}</span>
+      {/* Inspeção do Nível e Dedução Matemática */}
+      <div className="p-3 bg-emerald-50/50 rounded-md border border-emerald-100 text-xs font-mono space-y-1.5">
+        <div className="flex items-center justify-between text-emerald-950 font-bold">
+          <span>Dedução da Look-Up Table (LUT) para r = {selectedIntensity}:</span>
+          <span className="text-[#00875a]">Mapeado em s = {mappedVal}</span>
         </div>
-        <div className="text-slate-700 space-y-1">
-          <div>• Frequência absoluta no nível {selectedIntensity}: <strong>H[{selectedIntensity}] = {countIn} pixels</strong> ({((countIn / hist.totalPixels) * 100).toFixed(2)}% da imagem).</div>
-          <div>• Contagem acumulada até {selectedIntensity}: <strong>∑ H[l] = {cdfIn} pixels</strong> ({((cdfIn / hist.totalPixels) * 100).toFixed(2)}% da massa).</div>
-          <div>• Fórmula (A5 p. 38): s = round( (255 / {hist.totalPixels}) · {cdfIn} ) = round( {((255 / hist.totalPixels) * cdfIn).toFixed(2)} ) = <strong>{eqMappedVal}</strong>.</div>
+        <div className="text-slate-700 space-y-0.5 text-[11px] leading-relaxed">
+          <div>• Frequência no nível {selectedIntensity}: <strong>H[{selectedIntensity}] = {countIn} pixels</strong> ({((countIn / histIn.totalPixels) * 100).toFixed(2)}% da imagem).</div>
+          <div>• Contagem acumulada até {selectedIntensity}: <strong>∑ H[l] = {cdfIn} pixels</strong> ({((cdfIn / histIn.totalPixels) * 100).toFixed(2)}% da massa total).</div>
+          {activeOp === 'equalize' && (
+            <div>• Fórmula (CDF Global): s = round( (255 / {histIn.totalPixels}) · {cdfIn} ) = round( {((255 / histIn.totalPixels) * cdfIn).toFixed(2)} ) = <strong>{mappedVal}</strong>.</div>
+          )}
+          {activeOp === 'expand' && (
+            <div>• Fórmula (Expansão Linear): s = round( 255 · ({selectedIntensity} - {histIn.min}) / ({histIn.max} - {histIn.min}) ) = <strong>{mappedVal}</strong>.</div>
+          )}
+          {activeOp === 'original' && (
+            <div>• Fórmula: Imagem original sem transformação aplicada (s = r = {selectedIntensity}).</div>
+          )}
         </div>
       </div>
 

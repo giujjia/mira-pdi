@@ -13,7 +13,7 @@ export interface TestCaseResult {
 }
 
 /**
- * TC-01 — Aguçamento Paramétrico (Caso Normativo 2.1):
+ * TC-01: Aguçamento Paramétrico (Caso Normativo 2.1):
  * Máscara 3×3:
  * [-c,   -c,  -c]
  * [-c, 8c+d,  -c]
@@ -49,7 +49,7 @@ export function runTC01Sharpening(
 }
 
 /**
- * TC-02 — Efeito de Relevo (Caso Normativo 2.2):
+ * TC-02: Efeito de Relevo (Caso Normativo 2.2):
  * h1 = [[0,0,0], [0,1,0], [0,0,-1]]
  * h2 = [[0,0,2], [0,-1,0], [-1,0,0]]
  * Ambas as somas são zero. Em regiões homogêneas a resposta é nula.
@@ -88,7 +88,7 @@ export function runTC02Emboss(
 }
 
 /**
- * TC-03 — Máscaras Indicadas como Detecção de Bordas (Caso Normativo 2.3):
+ * TC-03: Máscaras Indicadas como Detecção de Bordas (Caso Normativo 2.3):
  * h3 = [[-1,-1,0], [1,0,1], [0,1,1]] -> Soma = +2
  * h4 = [[0,-1,0], [-1,-4,-1], [0,-1,0]] -> Soma = -8
  * 

@@ -75,7 +75,7 @@ export function robertsFilter(
 
 /**
  * Operador de Bússola de Kirsch (RF-08, C29):
- * Oito máscaras direcionais 3×3; a resposta final é o MÁXIMO absoluto ou com sinal por pixel.
+ * Oito máscaras direcionais 3×3; a resposta final é o máximo das respostas com sinal por pixel.
  * O contrato exige selecionar a maior resposta direcional por pixel.
  */
 export function kirschFilter(

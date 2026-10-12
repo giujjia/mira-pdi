@@ -35,7 +35,7 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="flex flex-col items-center justify-center p-8 bg-red-50/50 border border-red-200 rounded-lg text-center max-w-lg mx-auto my-12 space-y-4">
+        <div className="flex flex-col items-center justify-center p-8 bg-red-50/50 border border-red-200 rounded-md text-center max-w-lg mx-auto my-12 space-y-4">
           <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto">
             <span className="material-symbols-outlined text-2xl">warning</span>
           </div>
@@ -47,7 +47,7 @@ export class ErrorBoundary extends Component<Props, State> {
           </div>
           <button
             onClick={this.handleReset}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg shadow-xs transition-colors"
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded shadow-xs transition-colors"
           >
             Tentar Novamente
           </button>

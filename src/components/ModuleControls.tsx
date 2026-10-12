@@ -1,7 +1,7 @@
 import React from 'react';
 import { ModuleKey } from './Sidebar';
 
-export interface ModuleControlsProps {
+interface ModuleControlsProps {
   activeModule: ModuleKey;
   // Pointwise
   pointwiseOp: 'negative' | 'threshold' | 'stretching';
@@ -13,6 +13,7 @@ export interface ModuleControlsProps {
   setSmax: (val: number) => void;
   // Gamma & Log
   gammaOp: 'gamma' | 'log';
+  setGammaOp: (op: 'gamma' | 'log') => void;
   gammaVal: number;
   setGammaVal: (val: number) => void;
   logConst: number;
@@ -66,6 +67,7 @@ export const ModuleControls: React.FC<ModuleControlsProps> = ({
   smax,
   setSmax,
   gammaOp,
+  setGammaOp,
   gammaVal,
   setGammaVal,
   logConst,
@@ -153,83 +155,143 @@ export const ModuleControls: React.FC<ModuleControlsProps> = ({
         </div>
       )}
 
-      {/* 3. Gamma Curve */}
-      {activeModule === 'gamma' && gammaOp === 'gamma' && (
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-xs font-mono">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              VALOR DE GAMMA (γ)
+      {/* 3. Curvas Gamma & Log Transform */}
+      {activeModule === 'gamma' && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-0.5">
+          {/* Seletor de Operação */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 shrink-0">
+              OPERAÇÃO:
             </span>
-            <span className="text-[#00875a] font-bold">{gammaVal.toFixed(2)}</span>
+            <div className="flex items-center bg-slate-100 p-0.5 rounded text-xs font-medium">
+              <button
+                onClick={() => setGammaOp('gamma')}
+                className={`px-2.5 py-1 rounded-sm transition-all ${
+                  gammaOp === 'gamma'
+                    ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Correção Gamma (γ)
+              </button>
+              <button
+                onClick={() => setGammaOp('log')}
+                className={`px-2.5 py-1 rounded-sm transition-all ${
+                  gammaOp === 'log'
+                    ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Logarítmica: c·ln(1+r)
+              </button>
+            </div>
           </div>
-          <input
-            type="range"
-            min={0.05}
-            max={4.0}
-            step={0.05}
-            value={gammaVal}
-            onChange={(e) => setGammaVal(parseFloat(e.target.value) || 1.0)}
-            className="w-full accent-[#00875a] cursor-pointer"
-          />
-        </div>
-      )}
 
-      {/* 4. Log Transform */}
-      {activeModule === 'gamma' && gammaOp === 'log' && (
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-xs font-mono">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              GANHO c
-            </span>
-            <span className="text-[#00875a] font-bold">{logConst.toFixed(1)}x</span>
+          {/* Barra de Scrollar (Slider) Alinhada Verticalmente com os Botões */}
+          <div className="flex-1 sm:max-w-xs md:max-w-sm flex items-center gap-2.5">
+            {gammaOp === 'gamma' ? (
+              <>
+                <span className="text-[10px] text-slate-400 font-mono font-bold uppercase shrink-0">
+                  VALOR γ:
+                </span>
+                <input
+                  type="range"
+                  min={0.05}
+                  max={4.0}
+                  step={0.05}
+                  value={gammaVal}
+                  onChange={(e) => setGammaVal(parseFloat(e.target.value) || 1.0)}
+                  className="w-full accent-[#00875a] cursor-pointer"
+                  title="Ajuste do expoente gamma (γ < 1 clareia tons escuros, γ > 1 comprime tons claros)"
+                />
+                <span className="text-xs font-mono font-bold text-[#00875a] shrink-0 min-w-[36px] text-right">
+                  {gammaVal.toFixed(2)}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="text-[10px] text-slate-400 font-mono font-bold uppercase shrink-0">
+                  GANHO c:
+                </span>
+                <input
+                  type="range"
+                  min={0.5}
+                  max={2.0}
+                  step={0.1}
+                  value={logConst}
+                  onChange={(e) => setLogConst(parseFloat(e.target.value) || 1.0)}
+                  className="w-full accent-[#00875a] cursor-pointer"
+                  title="Constante multiplicativa da curva logarítmica: s = c · ln(1 + r)"
+                />
+                <span className="text-xs font-mono font-bold text-[#00875a] shrink-0 min-w-[36px] text-right">
+                  {logConst.toFixed(1)}x
+                </span>
+              </>
+            )}
           </div>
-          <input
-            type="range"
-            min={0.5}
-            max={2.0}
-            step={0.1}
-            value={logConst}
-            onChange={(e) => setLogConst(parseFloat(e.target.value) || 1.0)}
-            className="w-full accent-[#00875a] cursor-pointer"
-          />
         </div>
       )}
 
       {/* 5. Dissolve */}
       {activeModule === 'dissolve' && (
-        <div className="space-y-2">
-          <div className="grid grid-cols-2 gap-1 text-xs font-medium">
-            {(['uniform', 'horizontal', 'vertical', 'diagonal'] as const).map((m) => (
-              <button
-                key={m}
-                onClick={() => setDissolveMode(m)}
-                className={`py-1 rounded border capitalize ${
-                  dissolveMode === m
-                    ? 'bg-[#00875a] text-white border-[#00875a]'
-                    : 'bg-white border-slate-200'
-                }`}
-              >
-                {m}
-              </button>
-            ))}
-          </div>
-          {dissolveMode === 'uniform' && (
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs font-mono">
-                <span className="text-[10px] text-slate-400 font-bold uppercase">PESO t</span>
-                <span className="text-[#00875a] font-bold">{(dissolveT * 100).toFixed(0)}%</span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={dissolveT}
-                onChange={(e) => setDissolveT(parseFloat(e.target.value) || 0.5)}
-                className="w-full accent-[#00875a] cursor-pointer"
-              />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-0.5">
+          {/* Seletor de Modo de Mistura */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 shrink-0">
+              MODO:
+            </span>
+            <div className="flex items-center bg-slate-100 p-0.5 rounded text-xs font-medium">
+              {(['uniform', 'horizontal', 'vertical', 'diagonal'] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setDissolveMode(m)}
+                  className={`px-2.5 py-1 rounded-sm capitalize transition-all ${
+                    dissolveMode === m
+                      ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {m === 'uniform' ? 'Uniforme' : m === 'horizontal' ? 'Horizontal' : m === 'vertical' ? 'Vertical' : 'Diagonal'}
+                </button>
+              ))}
             </div>
-          )}
+          </div>
+
+          {/* Barra de Scrollar do Peso (t) Alinhada Verticalmente com os Botões */}
+          <div className="flex-1 sm:max-w-xs md:max-w-sm flex items-center gap-2.5">
+            {dissolveMode === 'uniform' ? (
+              <>
+                <span className="text-[10px] text-slate-400 font-mono font-bold uppercase shrink-0">
+                  PESO t:
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={dissolveT}
+                  onChange={(e) => setDissolveT(parseFloat(e.target.value) || 0.5)}
+                  className="w-full accent-[#00875a] cursor-pointer"
+                  title="Ajuste do fator de ponderação t (0 a 1)"
+                />
+                <span className="text-xs font-mono font-bold text-[#00875a] shrink-0 min-w-[36px] text-right">
+                  {(dissolveT * 100).toFixed(0)}%
+                </span>
+              </>
+            ) : (
+              <div className="w-full flex items-center justify-between gap-2 text-[11px] font-mono text-slate-500 bg-slate-50 border border-slate-200/80 px-2.5 py-1 rounded">
+                <span className="flex items-center gap-1 text-slate-400 text-[10px] font-bold uppercase">
+                  <span className="material-symbols-outlined text-xs text-[#00875a]">gradient</span>
+                  <span>Rampa:</span>
+                </span>
+                <span className="text-slate-700 font-semibold">
+                  {dissolveMode === 'horizontal' && 't(x) = x / (W - 1)'}
+                  {dissolveMode === 'vertical' && 't(y) = y / (H - 1)'}
+                  {dissolveMode === 'diagonal' && 't(x,y) = (x + y) / (W + H - 2)'}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -249,7 +311,7 @@ export const ModuleControls: React.FC<ModuleControlsProps> = ({
               <button
                 key={sz}
                 onClick={() => setSmoothingSize(sz)}
-                className={`flex-1 py-1 rounded-lg border text-xs font-mono ${
+                className={`flex-1 py-1 rounded border text-xs font-mono ${
                   smoothingSize === sz
                     ? 'bg-[#00875a] text-white font-bold border-[#00875a]'
                     : 'bg-white border-slate-200 text-slate-700'

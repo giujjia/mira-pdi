@@ -29,32 +29,6 @@
   }
 }
 
-.split-divider {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background-color: #0d9488;
-  cursor: ew-resize;
-  z-index: 30;
-}
-
-.split-handle {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: #0d9488;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-  cursor: ew-resize;
-}
 
 /* Controles acessíveis por teclado e telas compactas. */
 button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible {
@@ -89,7 +63,4 @@ button { min-height: 32px; }
 .teaching-output>span { width:42px; height:42px; border:1px solid #cbd5e1; }
 .teaching-output small { display:block; font-size:10px; color:#64748b; }
 .teaching-output strong { font-size:22px; }
-.experiment-heading { max-width:1600px; margin:0 auto 14px; }
-.experiment-heading h2 { font-size:16px; font-weight:650; }
-.experiment-heading p { font-size:12px; color:#64748b; line-height:1.7; margin-top:4px; }
 @media(max-width:900px) { .teaching-slide { grid-template-columns:1fr; padding:20px; gap:20px; } .teaching-copy h2 { font-size:21px; } }

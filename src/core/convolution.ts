@@ -67,7 +67,7 @@ export function rotateKernel180(kernel: Kernel2D): Kernel2D {
 }
 
 /**
- * Convolução Espacial Genérica 2D (RF-07, C19–C20, C30–C32):
+ * Convolução Espacial Genérica 2D (RF-07, C19 a C20, C30 a C32):
  * 1. Rotaciona a máscara 180° para computar a convolução legítima.
  * 2. Percorre cada pixel (x, y) da imagem.
  * 3. Multiplica elemento a elemento a vizinhança da imagem pelos coeficientes rotacionados.

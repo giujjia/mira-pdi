@@ -46,7 +46,7 @@ export interface ExplainParams {
   offset?: number;
   kernel?: Kernel2D;
   component?: string;
-  equalizedVal?: number;
+  histogramMode?: 'equalize' | 'expand' | 'original';
 }
 
 /**
@@ -94,6 +94,7 @@ export function explainPixel(
   let stepsText: string[] = [];
   let didacticNote = '';
   let lessonRef = '';
+  let appliedKernel: Kernel2D | undefined;
   let kernelWeights: number[][] | undefined = undefined;
 
   switch (op) {
@@ -222,6 +223,34 @@ export function explainPixel(
 
     case 'histogram': {
       const histData = computeHistogram(img);
+      if (params.histogramMode === 'expand') {
+        const rmin = histData.min;
+        const rmax = histData.max;
+        const range = rmax - rmin;
+        valRaw = range > 0 ? Math.round((255 * (r - rmin)) / range) : r;
+        formulaText = 's = round( 255 · (r - r_min) / (r_max - r_min) )';
+        stepsText = [
+          `Intensidade de entrada: r = ${r}`,
+          `Limites globais observados: r_min = ${rmin}, r_max = ${rmax} (intervalo: ${range})`,
+          `Fator de escala linear: 255 / ${range} = ${(255 / (range || 1)).toFixed(3)}`,
+          `Mapeamento esticado: round( 255 · (${r} - ${rmin}) / ${range} ) = ${valRaw}`
+        ];
+        didacticNote = 'A expansão linear de histograma estica o contraste ao mapear o menor valor observado para 0 e o maior para 255.';
+        lessonRef = CURRICULAR_CATALOG.C16.source;
+        break;
+      }
+      if (params.histogramMode === 'original') {
+        valRaw = r;
+        formulaText = 's = r (Identidade / Original)';
+        stepsText = [
+          `Intensidade de entrada: r = ${r}`,
+          `Ocorrências do nível ${r} na imagem: H[${r}] = ${histData.counts[r]} pixels`,
+          `Nenhuma transformação aplicada ao nível de intensidade.`
+        ];
+        didacticNote = 'Exibição da imagem original para análise direta do histograma de entrada.';
+        lessonRef = CURRICULAR_CATALOG.C15.source;
+        break;
+      }
       const count = histData.counts[r];
       const cumSum = histData.cdf[r];
       const len = histData.totalPixels;
@@ -300,27 +329,17 @@ export function explainPixel(
     }
 
     case 'sobel': {
-      kernelWeights = [
-        [-1, 0, 1],
-        [-2, 0, 2],
-        [-1, 0, 1]
-      ];
-      // Convolução rotaciona 180° antes de multiplicar
-      const gx = (-1 * n3[0]) + (0 * n3[1]) + (1 * n3[2]) +
-                 (-2 * n3[3]) + (0 * n3[4]) + (2 * n3[5]) +
-                 (-1 * n3[6]) + (0 * n3[7]) + (1 * n3[8]);
-
-      const gy = ( 1 * n3[0]) + ( 2 * n3[1]) + ( 1 * n3[2]) +
-                 ( 0 * n3[3]) + ( 0 * n3[4]) + ( 0 * n3[5]) +
-                 (-1 * n3[6]) + (-2 * n3[7]) + (-1 * n3[8]);
-
-      valRaw = Math.sqrt(gx * gx + gy * gy);
-      formulaText = '|∇f| = √(Gx² + Gy²)';
-      stepsText = [
-        `Gradiente horizontal Gx: (-1·${n3[0]}) + (1·${n3[2]}) + (-2·${n3[3]}) + (2·${n3[5]}) + (-1·${n3[6]}) + (1·${n3[8]}) = ${gx}`,
-        `Gradiente vertical Gy: (1·${n3[0]}) + (2·${n3[1]}) + (1·${n3[2]}) - (1·${n3[6]}) - (2·${n3[7]}) - (1·${n3[8]}) = ${gy}`,
-        `Magnitude Euclidiana: √(${gx}² + ${gy}²) = √(${gx * gx + gy * gy}) ≈ ${valRaw.toFixed(2)}`
-      ];
+      const kx = createKernel([[-1,0,1],[-2,0,2],[-1,0,1]]);
+      const ky = createKernel([[1,2,1],[0,0,0],[-1,-2,-1]]);
+      const gx = convolvePixel(img, kx, x, y, 0, border);
+      const gy = convolvePixel(img, ky, x, y, 0, border);
+      const magnitude = Math.hypot(gx, gy);
+      valRaw = params.component === 'gx' ? gx : params.component === 'gy' ? gy : magnitude;
+      appliedKernel = params.component === 'gx' ? kx : params.component === 'gy' ? ky : undefined;
+      formulaText = appliedKernel ? `${params.component} = ∑ pixel · peso rotacionado` : '|∇f| = √(Gx² + Gy²)';
+      stepsText = [`Convolução com rotação de 180°: Gx = ${gx}; Gy = ${gy}`,
+        `Magnitude: √((${gx})² + (${gy})²) = ${magnitude.toFixed(2)}`,
+        `Resposta exibida: ${params.component === 'gx' ? 'Gx' : params.component === 'gy' ? 'Gy' : 'magnitude'} = ${valRaw.toFixed(2)}`];
       didacticNote = 'O operador Sobel atenua ruídos ortogonais com o vetor [1, 2, 1]ᵀ e mede a variação de brilho máxima na direção perpendicular.';
       lessonRef = CURRICULAR_CATALOG.C26.source;
       break;
@@ -331,16 +350,15 @@ export function explainPixel(
       const k2 = createKernel([[1, 0], [0, -1]], 0, 0);
       const r1 = convolvePixel(img, k1, x, y, 0, border);
       const r2 = convolvePixel(img, k2, x, y, 0, border);
-      valRaw = Math.sqrt(r1 * r1 + r2 * r2);
-      kernelWeights = [
-        [ 0, 1],
-        [-1, 0]
-      ];
-      formulaText = '|∇f| = √(R1² + R2²)  [Máscaras de Roberts 2×2]';
+      const magnitude = Math.hypot(r1, r2);
+      valRaw = params.component === 'r1' ? r1 : params.component === 'r2' ? r2 : magnitude;
+      appliedKernel = params.component === 'r1' ? k1 : params.component === 'r2' ? k2 : undefined;
+      formulaText = appliedKernel ? `${params.component} = ∑ pixel · peso rotacionado` : '|∇f| = √(R1² + R2²)';
       stepsText = [
         `Diferença diagonal 45° (R1): ${r1.toFixed(2)}`,
         `Diferença diagonal 135° (R2): ${r2.toFixed(2)}`,
-        `Magnitude Euclidiana: √(${r1.toFixed(2)}² + ${r2.toFixed(2)}²) = ${valRaw.toFixed(2)}`
+        `Magnitude Euclidiana: √(${r1.toFixed(2)}² + ${r2.toFixed(2)}²) = ${magnitude.toFixed(2)}`,
+        `Resposta exibida: ${params.component ?? 'magnitude'} = ${valRaw.toFixed(2)}`
       ];
       didacticNote = 'O operador de Roberts utiliza máscaras diagonais 2×2 com âncora em (0, 0). Por não possuir suavização, é extremamente sensível ao ruído.';
       lessonRef = CURRICULAR_CATALOG.C25.source;
@@ -372,15 +390,18 @@ export function explainPixel(
           winningWeights = km.kernel.weights;
         }
       }
-      valRaw = maxResp;
-      kernelWeights = winningWeights;
+      const selected = Number(params.component);
+      const chosen = params.component !== undefined && params.component !== 'max' && Number.isInteger(selected) && selected >= 0 && selected < 8;
+      appliedKernel = chosen ? kirschMasks[selected].kernel : createKernel(winningWeights);
+      valRaw = chosen ? convolvePixel(img, appliedKernel, x, y, 0, border) : maxResp;
       formulaText = 's = max(R_N, R_NW, R_W, R_SW, R_S, R_SE, R_E, R_NE)';
       stepsText = [
         `Respostas das 8 direções: ${responses.slice(0, 4).join(', ')}`,
         `Demais direções: ${responses.slice(4).join(', ')}`,
-        `Máxima resposta selecionada: ${maxResp.toFixed(2)} (Direção dominante: ${winningDir})`
+        `Máxima resposta encontrada: ${maxResp.toFixed(2)} (Direção dominante: ${winningDir})`
       ];
-      didacticNote = 'O operador de Kirsch aplica 8 máscaras direcionais rotacionadas de 45° e seleciona a maior resposta, indicando a orientação da borda dominante.';
+      if (chosen) { formulaText = `K${selected + 1} = ∑ pixel · peso rotacionado`; stepsText.push(`Selecionada K${selected + 1}: ${valRaw}`); }
+      didacticNote = 'As direções nomeiam as máscaras antes da rotação de 180°. O operador de Kirsch aplica 8 máscaras direcionais rotacionadas de 45° e seleciona a maior resposta, indicando a orientação da borda dominante.';
       lessonRef = CURRICULAR_CATALOG.C29.source;
       break;
     }
@@ -420,6 +441,9 @@ export function explainPixel(
       didacticNote = isCenterNeg
         ? 'Como a máscara possui centro negativo (-4), a resposta laplaciana deve ser subtraída da imagem original para somar detalhes finos.'
         : 'Com centro positivo (+4), a resposta laplaciana já tem fase direta e deve ser somada à imagem original.';
+      if (params.component === 'original') { valRaw = r; formulaText = 'f(x,y) = r'; kernelWeights = undefined; }
+      if (params.component === 'laplacian') { valRaw = L; formulaText = 'L(f) = ∑ pixel · peso'; }
+      stepsText.push(`Etapa exibida: ${params.component ?? 'result'} = ${valRaw}`);
       lessonRef = CURRICULAR_CATALOG.C27.source;
       break;
     }
@@ -447,7 +471,7 @@ export function explainPixel(
     case 'convolution': {
       const kernel = params.kernel ?? createKernel([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]]);
       const offset = params.offset ?? 0;
-      kernelWeights = kernel.weights;
+      appliedKernel = kernel;
       valRaw = convolvePixel(img, kernel, x, y, offset, border);
       formulaText = `g = ∑ (pixel · peso_rotacionado) + offset  [offset = ${offset}]`;
       stepsText = [
@@ -563,14 +587,22 @@ export function explainPixel(
     }
   }
 
+  const rotated = appliedKernel ? rotateKernel180(appliedKernel) : kernelWeights ? rotateKernel180(createKernel(kernelWeights)) : undefined;
+  const neighborhoodRows = rotated?.rows ?? 3;
+  const neighborhoodCols = rotated?.cols ?? 3;
+  const anchorX = rotated?.anchorX ?? 1;
+  const anchorY = rotated?.anchorY ?? 1;
+  const neighbors = Array.from({length: neighborhoodRows * neighborhoodCols}, (_, i) =>
+    getPixel(img, x + i % neighborhoodCols - anchorX, y + Math.floor(i / neighborhoodCols) - anchorY, border));
   return {
+    neighborhoodRows, neighborhoodCols, anchorX, anchorY,
     x,
     y,
     valIn: r,
     valRaw,
     valQuant: quantize(valRaw),
-    neighbors: n3,
-    kernelWeights,
+    neighbors,
+    kernelWeights: rotated?.weights,
     formulaText,
     stepsText,
     didacticNote,

@@ -8,7 +8,7 @@ import {
   threshold
 } from '../src/core/pointwise';
 
-describe('Transformações Pontuais (RF-03, C10–C14)', () => {
+describe('Transformações Pontuais (RF-03, C10 a C14)', () => {
   it('Negativo: s = 255 - r', () => {
     const img = createImage(3, 1);
     setPixel(img, 0, 0, 0);

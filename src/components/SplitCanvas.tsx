@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { signedDisplay } from '../core/display';
+import React, { useMemo, useEffect, useRef, useState, useCallback } from 'react';
 import { toImageData } from '../core/matrix';
 import { GrayImage } from '../core/types';
 
@@ -21,6 +22,8 @@ export const SplitCanvas: React.FC<SplitCanvasProps> = ({
   labels = { before: 'ANTES', after: 'DEPOIS' },
   
 }) => {
+  const [showSigned, setShowSigned] = useState(false);
+  const signed = useMemo(() => showSigned ? signedDisplay(afterImg) : null, [afterImg, showSigned]);
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasBeforeRef = useRef<HTMLCanvasElement>(null);
   const canvasAfterRef = useRef<HTMLCanvasElement>(null);
@@ -57,11 +60,11 @@ export const SplitCanvas: React.FC<SplitCanvasProps> = ({
     if (canvasAfterRef.current) {
       const ctx = canvasAfterRef.current.getContext('2d');
       if (ctx) {
-        const idata = toImageData(afterImg, ctx);
+        const idata = toImageData(signed?.image ?? afterImg, ctx);
         ctx.putImageData(idata, 0, 0);
       }
     }
-  }, [beforeImg, afterImg, viewMode]);
+  }, [beforeImg, afterImg, viewMode, signed]);
 
   useEffect(() => {
     const animId = requestAnimationFrame(drawImages);
@@ -121,15 +124,18 @@ export const SplitCanvas: React.FC<SplitCanvasProps> = ({
   const imgH = beforeImg.height;
 
   return (
+    <div className="w-full min-w-0">
+      <label className="block text-xs text-slate-600 mb-2"><input type="checkbox" checked={showSigned} onChange={e => setShowSigned(e.target.checked)} /> Visualizar resposta com sinal (escala simétrica)</label>
+      {signed && <p className="text-xs text-slate-500 mb-2">Saída: preto = −{signed.extent.toFixed(1)} · cinza = 0 · branco = +{signed.extent.toFixed(1)}. Escala apenas visual; inspetor, histograma e exportação mantêm os valores originais e Q(v).</p>}
     <div className="w-full flex flex-col items-center justify-center">
       
       {/* MODO LADO A LADO */}
       {viewMode === 'sideBySide' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
           {/* Antes */}
-          <div className="p-3 bg-slate-50/80 rounded-md border border-slate-200 flex flex-col items-center">
+          <div className="p-3 bg-slate-50/80 rounded border border-slate-200 flex flex-col items-center">
             <span className="text-xs font-mono text-slate-600 mb-2 font-bold tracking-wider">{labels.before}</span>
-            <div className="relative border border-slate-300 rounded-lg overflow-hidden shadow-xs bg-white">
+            <div className="relative border border-slate-300 rounded overflow-hidden shadow-xs bg-white">
               <canvas
                 ref={canvasBeforeRef}
                 width={imgW}
@@ -157,9 +163,9 @@ export const SplitCanvas: React.FC<SplitCanvasProps> = ({
           </div>
 
           {/* Depois */}
-          <div className="p-3 bg-slate-50/80 rounded-md border border-slate-200 flex flex-col items-center">
+          <div className="p-3 bg-slate-50/80 rounded border border-slate-200 flex flex-col items-center">
             <span className="text-xs font-mono text-[#00875a] mb-2 font-bold tracking-wider">{labels.after}</span>
-            <div className="relative border border-slate-300 rounded-lg overflow-hidden shadow-xs bg-white">
+            <div className="relative border border-slate-300 rounded overflow-hidden shadow-xs bg-white">
               <canvas
                 ref={canvasAfterRef}
                 width={imgW}
@@ -186,12 +192,80 @@ export const SplitCanvas: React.FC<SplitCanvasProps> = ({
             </div>
           </div>
         </div>
+      ) : viewMode === 'beforeOnly' ? (
+        /* MODO ANTES APENAS */
+        <div
+          ref={containerRef}
+          style={{ aspectRatio: `${imgW}/${imgH}` }}
+          className="relative rounded border border-slate-200 overflow-hidden shadow-xs flex items-center justify-center select-none bg-slate-900 w-full max-w-[540px]"
+        >
+          <canvas
+            ref={canvasBeforeRef}
+            width={imgW}
+            height={imgH}
+            style={{ width: '100%', height: '100%', objectFit: 'contain', imageRendering: 'pixelated' }}
+            onClick={handleCanvasClick}
+            className="cursor-crosshair block"
+          />
+          <div className="absolute top-4 left-4 text-[10px] font-mono px-2.5 py-1 rounded-xs bg-white/95 text-slate-900 border border-slate-200 font-bold tracking-wider shadow-sm">
+            {labels.before}
+          </div>
+          {selectedCoord && (
+            <div
+              className="absolute pointer-events-none rounded-xs z-40 flex items-center justify-center"
+              style={{
+                left: `${(selectedCoord.x / imgW) * 100}%`,
+                top: `${(selectedCoord.y / imgH) * 100}%`,
+                width: '18px',
+                height: '18px',
+                transform: 'translate(-50%, -50%)',
+              }}
+            >
+              <div className="w-full h-full border-2 border-[#00875a] ring-2 ring-white/95 rounded-xs shadow-[0_0_12px_rgba(0,135,90,0.9)]" />
+              <div className="absolute w-1.5 h-1.5 bg-[#00875a] ring-1 ring-white rounded-full" />
+            </div>
+          )}
+        </div>
+      ) : viewMode === 'afterOnly' ? (
+        /* MODO DEPOIS APENAS */
+        <div
+          ref={containerRef}
+          style={{ aspectRatio: `${imgW}/${imgH}` }}
+          className="relative rounded border border-slate-200 overflow-hidden shadow-xs flex items-center justify-center select-none bg-slate-900 w-full max-w-[540px]"
+        >
+          <canvas
+            ref={canvasAfterRef}
+            width={imgW}
+            height={imgH}
+            style={{ width: '100%', height: '100%', objectFit: 'contain', imageRendering: 'pixelated' }}
+            onClick={handleCanvasClick}
+            className="cursor-crosshair block"
+          />
+          <div className="absolute top-4 right-4 text-[10px] font-mono px-2.5 py-1 rounded-xs bg-[#00875a] text-white font-bold tracking-wider shadow-sm">
+            {labels.after}
+          </div>
+          {selectedCoord && (
+            <div
+              className="absolute pointer-events-none rounded-xs z-40 flex items-center justify-center"
+              style={{
+                left: `${(selectedCoord.x / imgW) * 100}%`,
+                top: `${(selectedCoord.y / imgH) * 100}%`,
+                width: '18px',
+                height: '18px',
+                transform: 'translate(-50%, -50%)',
+              }}
+            >
+              <div className="w-full h-full border-2 border-[#00875a] ring-2 ring-white/95 rounded-xs shadow-[0_0_12px_rgba(0,135,90,0.9)]" />
+              <div className="absolute w-1.5 h-1.5 bg-[#00875a] ring-1 ring-white rounded-full" />
+            </div>
+          )}
+        </div>
       ) : (
         /* MODO SPLIT SLIDER VERTICAL HERO (1:1 Quadrado Perfeito) */
         <div
           ref={containerRef}
           style={{ aspectRatio: `${imgW}/${imgH}` }}
-          className="relative rounded-md border border-slate-200 overflow-hidden shadow-xs flex items-center justify-center select-none bg-slate-900 w-full max-w-[540px]"
+          className="relative rounded border border-slate-200 overflow-hidden shadow-xs flex items-center justify-center select-none bg-slate-900 w-full max-w-[540px]"
         >
           {/* Camada do "Depois" (Fundo total) */}
           <div className="absolute inset-0 flex items-center justify-center">
@@ -203,7 +277,7 @@ export const SplitCanvas: React.FC<SplitCanvasProps> = ({
               onClick={handleCanvasClick}
               className="cursor-crosshair block"
             />
-            <div className="absolute top-4 right-4 text-[10px] font-mono px-2.5 py-1 rounded-md bg-[#00875a] text-white font-bold tracking-wider shadow-sm">
+            <div className="absolute top-4 right-4 text-[10px] font-mono px-2.5 py-1 rounded-xs bg-[#00875a] text-white font-bold tracking-wider shadow-sm">
               {labels.after}
             </div>
           </div>
@@ -223,7 +297,7 @@ export const SplitCanvas: React.FC<SplitCanvasProps> = ({
                 className="cursor-crosshair block"
               />
             </div>
-            <div className="absolute top-4 left-4 text-[10px] font-mono px-2.5 py-1 rounded-md bg-white/95 text-slate-900 border border-slate-200 font-bold tracking-wider shadow-sm">
+            <div className="absolute top-4 left-4 text-[10px] font-mono px-2.5 py-1 rounded-xs bg-white/95 text-slate-900 border border-slate-200 font-bold tracking-wider shadow-sm">
               {labels.before}
             </div>
           </div>
@@ -270,6 +344,7 @@ export const SplitCanvas: React.FC<SplitCanvasProps> = ({
         Comparação: mova o divisor para revelar o antes e o depois
         <input aria-label="Posição do divisor antes e depois" type="range" min={0} max={100} value={splitPos} onChange={e => setSplitPos(Number(e.target.value))} className="mt-2 w-full accent-emerald-700" />
       </label>}
+    </div>
     </div>
   );
 };

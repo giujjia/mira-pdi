@@ -1,4 +1,4 @@
-export interface LessonContent {
+interface LessonContent {
   id: string;
   title: string;
   source: string;
