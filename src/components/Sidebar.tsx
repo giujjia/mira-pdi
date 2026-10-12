@@ -92,7 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeModule, onSelectModule }
                     key={item.key}
                     onClick={() => onSelectModule(item.key)}
                     aria-current={isActive ? 'page' : undefined}
-                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded text-left transition-all ${
+                    className={`w-full flex items-center px-2.5 py-1.5 rounded text-left transition-all ${
                       isActive
                         ? 'font-bold text-[#00875a] bg-[#e6f4ea] border border-emerald-200/80 shadow-2xs'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
@@ -102,11 +102,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeModule, onSelectModule }
                       <span className="font-mono text-[10px] opacity-75 mr-1">{item.code} ·</span>
                       {item.label}
                     </span>
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full shrink-0 ml-1.5 transition-all ${
-                        isActive ? 'bg-[#00875a] ring-2 ring-[#00875a]/30' : 'bg-slate-300'
-                      }`}
-                    />
                   </button>
                 );
               })}
@@ -117,10 +112,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeModule, onSelectModule }
 
       {/* Rodapé da Barra de Navegação */}
       <div className="p-3 border-t border-slate-100 bg-slate-50 text-[11px] text-slate-500 font-mono flex items-center justify-between">
-        <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
-          Ambiente Conectado
-        </span>
         <span className="font-bold text-slate-600">UNIR · 2026</span>
       </div>
       <a

@@ -108,10 +108,6 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           </button>
         </div>
 
-        <p className="text-xs text-slate-600 leading-relaxed">
-          Gere arquivos com garantia de reprodutibilidade para o relatório final em LaTeX da disciplina de PDI.
-        </p>
-
         <div className="p-3 bg-slate-50 rounded border border-slate-200 text-xs font-mono space-y-1">
           <div>Operação: <strong className="text-teal-700">{operationName}</strong></div>
           <div>Dimensões: <strong>{image.width} × {image.height} px</strong></div>

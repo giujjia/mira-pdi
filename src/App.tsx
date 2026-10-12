@@ -7,7 +7,6 @@ import { MaskEditor } from './components/MaskEditor';
 import { ExportModal } from './components/ExportModal';
 import { TeachingSlide } from './components/TeachingSlide';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { ModuleControls } from './components/ModuleControls';
 
 import { GrayImage, BorderPolicy, PixelExplanation, Kernel2D } from './core/types';
 import { cloneImage, fromImageData, createSyntheticPattern, getPixel } from './core/matrix';
@@ -590,19 +589,6 @@ export const App: React.FC = () => {
     sharpenOp,
     mandatoryTC
   ]);
-
-  const hasModuleControls = useMemo(() => {
-    return (
-      (activeModule === 'pointwise' && (pointwiseOp === 'threshold' || pointwiseOp === 'stretching')) ||
-      activeModule === 'gamma' ||
-      activeModule === 'dissolve' ||
-      activeModule === 'smoothing' ||
-      (activeModule === 'edges' && edgeOp === 'sobel') ||
-      activeModule === 'sharpening' ||
-      activeModule === 'mandatory'
-    );
-  }, [activeModule, pointwiseOp, edgeOp]);
-
   const responseLabel = activeModule === 'edges'
     ? edgeOp === 'sobel' ? (sobelComp === 'magnitude' ? 'Magnitude Sobel' : sobelComp.toUpperCase())
       : edgeOp === 'roberts' ? (robertsComp === 'magnitude' ? 'Magnitude Roberts' : robertsComp.toUpperCase())
@@ -1284,247 +1270,674 @@ export const App: React.FC = () => {
 
                         {/* Linha 2: Sub-operações em Formato Pill Buttons */}
                         <div className="space-y-3">
+                          {activeModule === 'dissolve' && (
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              {/* Seletor de Modo de Mistura */}
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-xs font-mono font-bold text-slate-500 uppercase shrink-0">
+                                  Modo:
+                                </span>
+                                <div className="flex items-center bg-slate-100 p-0.5 rounded text-xs font-medium">
+                                  {(['uniform', 'horizontal', 'vertical', 'diagonal'] as const).map((m) => (
+                                    <button
+                                      key={m}
+                                      onClick={() => setDissolveMode(m)}
+                                      className={`px-2.5 py-1 rounded-sm capitalize transition-all ${
+                                        dissolveMode === m
+                                          ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                          : 'text-slate-600 hover:text-slate-900'
+                                      }`}
+                                    >
+                                      {m === 'uniform' ? 'Uniforme' : m === 'horizontal' ? 'Horizontal' : m === 'vertical' ? 'Vertical' : 'Diagonal'}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Barra de Scrollar do Peso (t) Alinhada Verticalmente com os Botões */}
+                              <div className="flex-1 sm:max-w-xs md:max-w-sm flex items-center justify-end gap-2.5">
+                                {dissolveMode === 'uniform' ? (
+                                  <div className="w-full flex items-center gap-2.5">
+                                    <span className="text-[10px] text-slate-400 font-mono font-bold uppercase shrink-0">
+                                      PESO t:
+                                    </span>
+                                    <input
+                                      type="range"
+                                      min={0}
+                                      max={1}
+                                      step={0.01}
+                                      value={dissolveT}
+                                      onChange={(e) => setDissolveT(parseFloat(e.target.value) || 0.5)}
+                                      className="w-full accent-[#00875a] cursor-pointer"
+                                      title="Ajuste do fator de ponderação t (0 a 1)"
+                                    />
+                                    <span className="text-xs font-mono font-bold text-[#00875a] shrink-0 min-w-[36px] text-right">
+                                      {(dissolveT * 100).toFixed(0)}%
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div className="w-full flex items-center justify-between gap-2 text-[11px] font-mono text-slate-500 bg-slate-50 border border-slate-200/80 px-2.5 py-1 rounded">
+                                    <span className="flex items-center gap-1 text-slate-400 text-[10px] font-bold uppercase">
+                                      <span className="material-symbols-outlined text-xs text-[#00875a]">gradient</span>
+                                      <span>Rampa:</span>
+                                    </span>
+                                    <span className="text-slate-700 font-semibold">
+                                      {dissolveMode === 'horizontal' && 't(x) = x / (W - 1)'}
+                                      {dissolveMode === 'vertical' && 't(y) = y / (H - 1)'}
+                                      {dissolveMode === 'diagonal' && 't(x,y) = (x + y) / (W + H - 2)'}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {activeModule === 'gamma' && (
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              {/* Seletor de Operação */}
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-xs font-mono font-bold text-slate-500 uppercase shrink-0">
+                                  Operação:
+                                </span>
+                                <div className="flex items-center bg-slate-100 p-0.5 rounded text-xs font-medium">
+                                  <button
+                                    onClick={() => setGammaOp('gamma')}
+                                    className={`px-2.5 py-1 rounded-sm transition-all ${
+                                      gammaOp === 'gamma'
+                                        ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                    }`}
+                                  >
+                                    Correção Gamma (γ)
+                                  </button>
+                                  <button
+                                    onClick={() => setGammaOp('log')}
+                                    className={`px-2.5 py-1 rounded-sm transition-all ${
+                                      gammaOp === 'log'
+                                        ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                    }`}
+                                  >
+                                    Logarítmica: c·ln(1+r)
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Barra de Scrollar (Slider) Alinhada Verticalmente com os Botões */}
+                              <div className="flex-1 sm:max-w-xs md:max-w-sm flex items-center justify-end gap-2.5">
+                                {gammaOp === 'gamma' ? (
+                                  <div className="w-full flex items-center gap-2.5">
+                                    <span className="text-[10px] text-slate-400 font-mono font-bold uppercase shrink-0">
+                                      VALOR γ:
+                                    </span>
+                                    <input
+                                      type="range"
+                                      min={0.05}
+                                      max={4.0}
+                                      step={0.05}
+                                      value={gammaVal}
+                                      onChange={(e) => setGammaVal(parseFloat(e.target.value) || 1.0)}
+                                      className="w-full accent-[#00875a] cursor-pointer"
+                                      title="Ajuste do expoente gamma (γ < 1 clareia tons escuros, γ > 1 comprime tons claros)"
+                                    />
+                                    <span className="text-xs font-mono font-bold text-[#00875a] shrink-0 min-w-[36px] text-right">
+                                      {gammaVal.toFixed(2)}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div className="w-full flex items-center gap-2.5">
+                                    <span className="text-[10px] text-slate-400 font-mono font-bold uppercase shrink-0">
+                                      GANHO c:
+                                    </span>
+                                    <input
+                                      type="range"
+                                      min={0.5}
+                                      max={2.0}
+                                      step={0.1}
+                                      value={logConst}
+                                      onChange={(e) => setLogConst(parseFloat(e.target.value) || 1.0)}
+                                      className="w-full accent-[#00875a] cursor-pointer"
+                                      title="Constante multiplicativa da curva logarítmica: s = c · ln(1 + r)"
+                                    />
+                                    <span className="text-xs font-mono font-bold text-[#00875a] shrink-0 min-w-[36px] text-right">
+                                      {logConst.toFixed(1)}x
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
                           {activeModule === 'pointwise' && (
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-xs font-mono font-bold text-slate-500 uppercase">Sub-Operação:</span>
-                              <div className="flex items-center bg-slate-100 p-0.5 rounded text-xs font-medium">
-                                <button
-                                  onClick={() => setPointwiseOp('negative')}
-                                  className={`px-2.5 py-1 rounded-sm transition-all ${
-                                    pointwiseOp === 'negative'
-                                      ? 'bg-white text-[#00875a] font-bold shadow-2xs'
-                                      : 'text-slate-600 hover:text-slate-900'
-                                  }`}
-                                >
-                                  Negativo (255 - r)
-                                </button>
-                                <button
-                                  onClick={() => setPointwiseOp('threshold')}
-                                  className={`px-2.5 py-1 rounded-sm transition-all ${
-                                    pointwiseOp === 'threshold'
-                                      ? 'bg-white text-[#00875a] font-bold shadow-2xs'
-                                      : 'text-slate-600 hover:text-slate-900'
-                                  }`}
-                                >
-                                  Limiarização (T)
-                                </button>
-                                <button
-                                  onClick={() => setPointwiseOp('stretching')}
-                                  className={`px-2.5 py-1 rounded-sm transition-all ${
-                                    pointwiseOp === 'stretching'
-                                      ? 'bg-white text-[#00875a] font-bold shadow-2xs'
-                                      : 'text-slate-600 hover:text-slate-900'
-                                  }`}
-                                >
-                                  Alargamento
-                                </button>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-xs font-mono font-bold text-slate-500 uppercase shrink-0">Sub-Operação:</span>
+                                <div className="flex items-center bg-slate-100 p-0.5 rounded text-xs font-medium">
+                                  <button
+                                    onClick={() => setPointwiseOp('negative')}
+                                    className={`px-2.5 py-1 rounded-sm transition-all ${
+                                      pointwiseOp === 'negative'
+                                        ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                    }`}
+                                  >
+                                    Negativo (255 - r)
+                                  </button>
+                                  <button
+                                    onClick={() => setPointwiseOp('threshold')}
+                                    className={`px-2.5 py-1 rounded-sm transition-all ${
+                                      pointwiseOp === 'threshold'
+                                        ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                    }`}
+                                  >
+                                    Limiarização (T)
+                                  </button>
+                                  <button
+                                    onClick={() => setPointwiseOp('stretching')}
+                                    className={`px-2.5 py-1 rounded-sm transition-all ${
+                                      pointwiseOp === 'stretching'
+                                        ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                    }`}
+                                  >
+                                    Alargamento
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Barra de Seleção e Bloco de Saída Alinhados na Mesma Linha */}
+                              <div className="flex-1 sm:max-w-xs md:max-w-sm flex items-center justify-end gap-2.5">
+                                {pointwiseOp === 'threshold' && (
+                                  <div className="w-full flex items-center gap-2.5">
+                                    <span className="text-[10px] text-slate-400 font-mono font-bold uppercase shrink-0">
+                                      LIMIAR T:
+                                    </span>
+                                    <input
+                                      type="range"
+                                      min={0}
+                                      max={255}
+                                      value={thresholdVal}
+                                      onChange={(e) => setThresholdVal(parseInt(e.target.value, 10) || 0)}
+                                      className="w-full accent-[#00875a] cursor-pointer"
+                                      title="Ajuste do limiar T (0 a 255)"
+                                    />
+                                    <span className="text-xs font-mono font-bold text-[#00875a] shrink-0 min-w-[32px] text-right">
+                                      {thresholdVal}
+                                    </span>
+                                  </div>
+                                )}
+                                {pointwiseOp === 'stretching' && (
+                                  <div className="w-full flex items-center justify-end gap-2 font-mono text-xs">
+                                    <span className="text-[10px] text-slate-400 font-mono font-bold uppercase shrink-0">
+                                      FAIXA [smin, smax]:
+                                    </span>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      max={255}
+                                      value={smin}
+                                      onChange={(e) => setSmin(parseInt(e.target.value, 10) || 0)}
+                                      className="w-14 px-1.5 py-1 rounded border border-slate-200 text-center text-xs font-semibold focus:outline-none focus:border-[#00875a]"
+                                    />
+                                    <span className="text-slate-400 text-xs">até</span>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      max={255}
+                                      value={smax}
+                                      onChange={(e) => setSmax(parseInt(e.target.value, 10) || 255)}
+                                      className="w-14 px-1.5 py-1 rounded border border-slate-200 text-center text-xs font-semibold focus:outline-none focus:border-[#00875a]"
+                                    />
+                                  </div>
+                                )}
                               </div>
                             </div>
                           )}
 
                           {activeModule === 'smoothing' && (
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-xs font-mono font-bold text-slate-500 uppercase">Filtro:</span>
-                              <div className="flex items-center bg-slate-100 p-0.5 rounded text-xs font-medium">
-                                <button
-                                  onClick={() => setSmoothingOp('mean')}
-                                  className={`px-2.5 py-1 rounded-sm transition-all ${
-                                    smoothingOp === 'mean'
-                                      ? 'bg-white text-[#00875a] font-bold shadow-2xs'
-                                      : 'text-slate-600 hover:text-slate-900'
-                                  }`}
-                                >
-                                  Filtro da Média
-                                </button>
-                                <button
-                                  onClick={() => setSmoothingOp('median')}
-                                  className={`px-2.5 py-1 rounded-sm transition-all ${
-                                    smoothingOp === 'median'
-                                      ? 'bg-white text-[#00875a] font-bold shadow-2xs'
-                                      : 'text-slate-600 hover:text-slate-900'
-                                  }`}
-                                >
-                                  Filtro da Mediana
-                                </button>
-                                <button
-                                  onClick={() => setSmoothingOp('adaptive')}
-                                  className={`px-2.5 py-1 rounded-sm transition-all ${
-                                    smoothingOp === 'adaptive'
-                                      ? 'bg-white text-[#00875a] font-bold shadow-2xs'
-                                      : 'text-slate-600 hover:text-slate-900'
-                                  }`}
-                                >
-                                  Contraste Local
-                                </button>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              {/* Seletor de Filtro */}
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-xs font-mono font-bold text-slate-500 uppercase shrink-0">Filtro:</span>
+                                <div className="flex items-center bg-slate-100 p-0.5 rounded text-xs font-medium">
+                                  <button
+                                    onClick={() => setSmoothingOp('mean')}
+                                    className={`px-2.5 py-1 rounded-sm transition-all ${
+                                      smoothingOp === 'mean'
+                                        ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                    }`}
+                                  >
+                                    Filtro da Média
+                                  </button>
+                                  <button
+                                    onClick={() => setSmoothingOp('median')}
+                                    className={`px-2.5 py-1 rounded-sm transition-all ${
+                                      smoothingOp === 'median'
+                                        ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                    }`}
+                                  >
+                                    Filtro da Mediana
+                                  </button>
+                                  <button
+                                    onClick={() => setSmoothingOp('adaptive')}
+                                    className={`px-2.5 py-1 rounded-sm transition-all ${
+                                      smoothingOp === 'adaptive'
+                                        ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                    }`}
+                                  >
+                                    Contraste Local
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Tamanho da Janela e Fator c Alinhados na Mesma Linha */}
+                              <div className="flex flex-wrap items-center justify-end gap-3 font-mono">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[10px] text-slate-400 font-bold uppercase shrink-0">
+                                    JANELA:
+                                  </span>
+                                  <div className="flex items-center bg-slate-100 p-0.5 rounded text-xs font-medium">
+                                    {[3, 5, 7].map((sz) => (
+                                      <button
+                                        key={sz}
+                                        onClick={() => setSmoothingSize(sz)}
+                                        className={`px-2.5 py-1 rounded-sm transition-all cursor-pointer ${
+                                          smoothingSize === sz
+                                            ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                            : 'text-slate-600 hover:text-slate-900'
+                                        }`}
+                                      >
+                                        {sz}×{sz}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {smoothingOp === 'adaptive' && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] text-slate-400 font-bold uppercase shrink-0">
+                                      FATOR c:
+                                    </span>
+                                    <input
+                                      type="range"
+                                      min={0.2}
+                                      max={3.0}
+                                      step={0.1}
+                                      value={adaptiveC}
+                                      onChange={(e) => setAdaptiveC(parseFloat(e.target.value) || 1.0)}
+                                      className="w-20 accent-[#00875a] cursor-pointer"
+                                      title="Constante c do contraste adaptativo local"
+                                    />
+                                    <span className="text-xs font-bold text-[#00875a] shrink-0 min-w-[28px] text-right">
+                                      {adaptiveC.toFixed(1)}
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           )}
 
                           {activeModule === 'edges' && (
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-xs font-mono font-bold text-slate-500 uppercase">Operador:</span>
-                              <div className="flex items-center bg-slate-100 p-0.5 rounded text-xs font-medium">
-                                <button
-                                  onClick={() => setEdgeOp('sobel')}
-                                  className={`px-2.5 py-1 rounded-sm transition-all ${
-                                    edgeOp === 'sobel'
-                                      ? 'bg-white text-[#00875a] font-bold shadow-2xs'
-                                      : 'text-slate-600 hover:text-slate-900'
-                                  }`}
-                                >
-                                  Sobel
-                                </button>
-                                <button
-                                  onClick={() => setEdgeOp('roberts')}
-                                  className={`px-2.5 py-1 rounded-sm transition-all ${
-                                    edgeOp === 'roberts'
-                                      ? 'bg-white text-[#00875a] font-bold shadow-2xs'
-                                      : 'text-slate-600 hover:text-slate-900'
-                                  }`}
-                                >
-                                  Roberts
-                                </button>
-                                <button
-                                  onClick={() => setEdgeOp('kirsch')}
-                                  className={`px-2.5 py-1 rounded-sm transition-all ${
-                                    edgeOp === 'kirsch'
-                                      ? 'bg-white text-[#00875a] font-bold shadow-2xs'
-                                      : 'text-slate-600 hover:text-slate-900'
-                                  }`}
-                                >
-                                  Kirsch
-                                </button>
-                                <button
-                                  onClick={() => setEdgeOp('laplacian')}
-                                  className={`px-2.5 py-1 rounded-sm transition-all ${
-                                    edgeOp === 'laplacian'
-                                      ? 'bg-white text-[#00875a] font-bold shadow-2xs'
-                                      : 'text-slate-600 hover:text-slate-900'
-                                  }`}
-                                >
-                                  Laplaciano
-                                </button>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              {/* Seletor de Operador */}
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-xs font-mono font-bold text-slate-500 uppercase shrink-0">Operador:</span>
+                                <div className="flex items-center bg-slate-100 p-0.5 rounded text-xs font-medium">
+                                  <button
+                                    onClick={() => setEdgeOp('sobel')}
+                                    className={`px-2.5 py-1 rounded-sm transition-all ${
+                                      edgeOp === 'sobel'
+                                        ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                    }`}
+                                  >
+                                    Sobel
+                                  </button>
+                                  <button
+                                    onClick={() => setEdgeOp('roberts')}
+                                    className={`px-2.5 py-1 rounded-sm transition-all ${
+                                      edgeOp === 'roberts'
+                                        ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                    }`}
+                                  >
+                                    Roberts
+                                  </button>
+                                  <button
+                                    onClick={() => setEdgeOp('kirsch')}
+                                    className={`px-2.5 py-1 rounded-sm transition-all ${
+                                      edgeOp === 'kirsch'
+                                        ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                    }`}
+                                  >
+                                    Kirsch
+                                  </button>
+                                  <button
+                                    onClick={() => setEdgeOp('laplacian')}
+                                    className={`px-2.5 py-1 rounded-sm transition-all ${
+                                      edgeOp === 'laplacian'
+                                        ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                    }`}
+                                  >
+                                    Laplaciano
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Componente Gradiente Alinhado na Mesma Linha */}
+                              <div className="flex flex-wrap items-center justify-end gap-3 font-mono">
+                                {edgeOp === 'sobel' && (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] text-slate-400 font-bold uppercase shrink-0">
+                                      COMPONENTE:
+                                    </span>
+                                    <div className="flex items-center bg-slate-100 p-0.5 rounded text-xs font-medium uppercase">
+                                      {(['magnitude', 'gx', 'gy'] as const).map((c) => (
+                                        <button
+                                          key={c}
+                                          onClick={() => setSobelComp(c)}
+                                          className={`px-2.5 py-1 rounded-sm transition-all cursor-pointer ${
+                                            sobelComp === c
+                                              ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                              : 'text-slate-600 hover:text-slate-900'
+                                          }`}
+                                        >
+                                          {c}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                {edgeOp === 'roberts' && (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] text-slate-400 font-bold uppercase shrink-0">
+                                      COMPONENTE:
+                                    </span>
+                                    <div className="flex items-center bg-slate-100 p-0.5 rounded text-xs font-medium uppercase">
+                                      {(['magnitude', 'r1', 'r2'] as const).map((c) => (
+                                        <button
+                                          key={c}
+                                          onClick={() => setRobertsComp(c)}
+                                          className={`px-2.5 py-1 rounded-sm transition-all cursor-pointer ${
+                                            robertsComp === c
+                                              ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                              : 'text-slate-600 hover:text-slate-900'
+                                          }`}
+                                        >
+                                          {c}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                {edgeOp === 'kirsch' && (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] text-slate-400 font-bold uppercase shrink-0">
+                                      DIREÇÃO:
+                                    </span>
+                                    <select
+                                      aria-label="Direção Kirsch"
+                                      value={kirschComp}
+                                      onChange={(e) => setKirschComp(e.target.value)}
+                                      className="text-xs bg-slate-50 border border-slate-300 rounded px-2 py-1 font-medium text-slate-700 focus:outline-none focus:border-[#00875a]"
+                                    >
+                                      <option value="max">Máximo (Bordas)</option>
+                                      {[0, 1, 2, 3, 4, 5, 6, 7].map((k) => (
+                                        <option key={k} value={k}>
+                                          K{k + 1} ({k * 45}°)
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           )}
-
                           {activeModule === 'sharpening' && (
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-xs font-mono font-bold text-slate-500 uppercase">Método:</span>
-                              <div className="flex items-center bg-slate-100 p-0.5 rounded text-xs font-medium">
-                                <button
-                                  onClick={() => setSharpenOp('laplacian')}
-                                  className={`px-2.5 py-1 rounded-sm transition-all ${
-                                    sharpenOp === 'laplacian'
-                                      ? 'bg-white text-[#00875a] font-bold shadow-2xs'
-                                      : 'text-slate-600 hover:text-slate-900'
-                                  }`}
-                                >
-                                  Laplaciano
-                                </button>
-                                <button
-                                  onClick={() => setSharpenOp('highBoost')}
-                                  className={`px-2.5 py-1 rounded-sm transition-all ${
-                                    sharpenOp === 'highBoost'
-                                      ? 'bg-white text-[#00875a] font-bold shadow-2xs'
-                                      : 'text-slate-600 hover:text-slate-900'
-                                  }`}
-                                >
-                                  High-Boost
-                                </button>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              {/* Seletor de Método */}
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-xs font-mono font-bold text-slate-500 uppercase shrink-0">Método:</span>
+                                <div className="flex items-center bg-slate-100 p-0.5 rounded text-xs font-medium">
+                                  <button
+                                    onClick={() => setSharpenOp('laplacian')}
+                                    className={`px-2.5 py-1 rounded-sm transition-all ${
+                                      sharpenOp === 'laplacian'
+                                        ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                    }`}
+                                  >
+                                    Laplaciano
+                                  </button>
+                                  <button
+                                    onClick={() => setSharpenOp('highBoost')}
+                                    className={`px-2.5 py-1 rounded-sm transition-all ${
+                                      sharpenOp === 'highBoost'
+                                        ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                    }`}
+                                  >
+                                    High-Boost
+                                  </button>
+                                </div>
                               </div>
+
+                              {/* Configuração Reativa: Centro ±4 para Laplaciano ou Ganho k para High-Boost */}
+                              {sharpenOp === 'laplacian' ? (
+                                <div className="flex items-center gap-1.5 font-mono">
+                                  <span className="text-[10px] text-slate-400 font-bold uppercase shrink-0">
+                                    NÚCLEO:
+                                  </span>
+                                  <div className="flex items-center bg-slate-100 p-0.5 rounded text-xs font-medium">
+                                    <button
+                                      onClick={() => setLaplacianMode('centerNegative')}
+                                      className={`px-2 py-0.5 rounded-sm transition-all ${
+                                        laplacianMode === 'centerNegative'
+                                          ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                          : 'text-slate-600 hover:text-slate-900'
+                                      }`}
+                                    >
+                                      Centro -4 (f - L)
+                                    </button>
+                                    <button
+                                      onClick={() => setLaplacianMode('centerPositive')}
+                                      className={`px-2 py-0.5 rounded-sm transition-all ${
+                                        laplacianMode === 'centerPositive'
+                                          ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                          : 'text-slate-600 hover:text-slate-900'
+                                      }`}
+                                    >
+                                      Centro +4 (f + L)
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex-1 sm:max-w-xs md:max-w-sm flex items-center gap-2.5">
+                                  <span className="text-[10px] text-slate-400 font-mono font-bold uppercase shrink-0">
+                                    GANHO k:
+                                  </span>
+                                  <input
+                                    type="range"
+                                    min={0.5}
+                                    max={4.0}
+                                    step={0.1}
+                                    value={highBoostK}
+                                    onChange={(e) => setHighBoostK(parseFloat(e.target.value) || 1.0)}
+                                    className="w-full accent-[#00875a] cursor-pointer"
+                                  />
+                                  <span className="text-xs font-mono font-bold text-[#00875a] shrink-0 min-w-[32px] text-right">
+                                    {highBoostK.toFixed(1)}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           )}
 
                           {activeModule === 'mandatory' && (
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-xs font-mono font-bold text-slate-500 uppercase">Máscara:</span>
-                              <div className="flex items-center bg-slate-100 p-0.5 rounded text-xs font-medium">
-                                <button
-                                  onClick={() => setMandatoryTC('TC-01')}
-                                  className={`px-2.5 py-1 rounded-sm transition-all ${
-                                    mandatoryTC === 'TC-01'
-                                      ? 'bg-white text-[#00875a] font-bold shadow-2xs'
-                                      : 'text-slate-600 hover:text-slate-900'
-                                  }`}
-                                >
-                                  TC-01 (c, d)
-                                </button>
-                                <button
-                                  onClick={() => setMandatoryTC('TC-02')}
-                                  className={`px-2.5 py-1 rounded-sm transition-all ${
-                                    mandatoryTC === 'TC-02'
-                                      ? 'bg-white text-[#00875a] font-bold shadow-2xs'
-                                      : 'text-slate-600 hover:text-slate-900'
-                                  }`}
-                                >
-                                  TC-02 (Relevo)
-                                </button>
-                                <button
-                                  onClick={() => setMandatoryTC('TC-03')}
-                                  className={`px-2.5 py-1 rounded-sm transition-all ${
-                                    mandatoryTC === 'TC-03'
-                                      ? 'bg-white text-[#00875a] font-bold shadow-2xs'
-                                      : 'text-slate-600 hover:text-slate-900'
-                                  }`}
-                                >
-                                  TC-03 (Bordas)
-                                </button>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              {/* Seletor de Máscara Especial */}
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-xs font-mono font-bold text-slate-500 uppercase shrink-0">Máscara:</span>
+                                <div className="flex items-center bg-slate-100 p-0.5 rounded text-xs font-medium">
+                                  <button
+                                    onClick={() => setMandatoryTC('TC-01')}
+                                    className={`px-2.5 py-1 rounded-sm transition-all ${
+                                      mandatoryTC === 'TC-01'
+                                        ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                    }`}
+                                  >
+                                    TC-01 (c, d)
+                                  </button>
+                                  <button
+                                    onClick={() => setMandatoryTC('TC-02')}
+                                    className={`px-2.5 py-1 rounded-sm transition-all ${
+                                      mandatoryTC === 'TC-02'
+                                        ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                    }`}
+                                  >
+                                    TC-02 (Relevo)
+                                  </button>
+                                  <button
+                                    onClick={() => setMandatoryTC('TC-03')}
+                                    className={`px-2.5 py-1 rounded-sm transition-all ${
+                                      mandatoryTC === 'TC-03'
+                                        ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                    }`}
+                                  >
+                                    TC-03 (Bordas)
+                                  </button>
+                                </div>
                               </div>
-                            </div>
-                          )}
 
-                          {/* Sliders Dinâmicos Reativos */}
-                          {hasModuleControls && (
-                            <div className="pt-2 border-t border-slate-100">
-                              <ModuleControls
-                                activeModule={activeModule}
-                                pointwiseOp={pointwiseOp}
-                                thresholdVal={thresholdVal}
-                                setThresholdVal={setThresholdVal}
-                                smin={smin}
-                                setSmin={setSmin}
-                                smax={smax}
-                                setSmax={setSmax}
-                                gammaOp={gammaOp}
-                                setGammaOp={setGammaOp}
-                                gammaVal={gammaVal}
-                                setGammaVal={setGammaVal}
-                                logConst={logConst}
-                                setLogConst={setLogConst}
-                                dissolveMode={dissolveMode}
-                                setDissolveMode={setDissolveMode}
-                                dissolveT={dissolveT}
-                                setDissolveT={setDissolveT}
-                                smoothingOp={smoothingOp}
-                                smoothingSize={smoothingSize}
-                                setSmoothingSize={setSmoothingSize}
-                                adaptiveC={adaptiveC}
-                                setAdaptiveC={setAdaptiveC}
-                                edgeOp={edgeOp}
-                                sobelComp={sobelComp}
-                                setSobelComp={setSobelComp}
-                                sharpenOp={sharpenOp}
-                                laplacianMode={laplacianMode}
-                                setLaplacianMode={setLaplacianMode}
-                                highBoostK={highBoostK}
-                                setHighBoostK={setHighBoostK}
-                                mandatoryTC={mandatoryTC}
-                                tc01C={tc01C}
-                                setTc01C={setTc01C}
-                                tc01D={tc01D}
-                                setTc01D={setTc01D}
-                                tc01Offset={tc01Offset}
-                                setTc01Offset={setTc01Offset}
-                                tc02Variant={tc02Variant}
-                                setTc02Variant={setTc02Variant}
-                                tc02Offset={tc02Offset}
-                                setTc02Offset={setTc02Offset}
-                                tc03Variant={tc03Variant}
-                                setTc03Variant={setTc03Variant}
-                                tc03Offset={tc03Offset}
-                                setTc03Offset={setTc03Offset}
-                              />
+                              {/* Parâmetros Reativos Alinhados à Direita */}
+                              {mandatoryTC === 'TC-01' && (
+                                <div className="flex items-center gap-2 font-mono text-xs">
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[10px] text-slate-400 font-bold uppercase">c:</span>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      max={10}
+                                      value={tc01C}
+                                      onChange={(e) => setTc01C(parseInt(e.target.value, 10) || 1)}
+                                      className="w-10 px-1 py-0.5 rounded border border-slate-300 text-center font-bold text-slate-700 bg-slate-50 focus:outline-none focus:border-[#00875a]"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[10px] text-slate-400 font-bold uppercase">d:</span>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      max={10}
+                                      value={tc01D}
+                                      onChange={(e) => setTc01D(parseInt(e.target.value, 10) || 1)}
+                                      className="w-10 px-1 py-0.5 rounded border border-slate-300 text-center font-bold text-slate-700 bg-slate-50 focus:outline-none focus:border-[#00875a]"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[10px] text-slate-400 font-bold uppercase">offset:</span>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      max={255}
+                                      value={tc01Offset}
+                                      onChange={(e) => setTc01Offset(parseInt(e.target.value, 10) || 0)}
+                                      className="w-12 px-1 py-0.5 rounded border border-slate-300 text-center font-bold text-slate-700 bg-slate-50 focus:outline-none focus:border-[#00875a]"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+
+                              {mandatoryTC === 'TC-02' && (
+                                <div className="flex items-center gap-3 font-mono text-xs">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] text-slate-400 font-bold uppercase shrink-0">VARIANTE:</span>
+                                    <div className="flex items-center bg-slate-100 p-0.5 rounded text-xs font-medium">
+                                      <button
+                                        onClick={() => setTc02Variant('h1')}
+                                        className={`px-2 py-0.5 rounded-sm transition-all ${
+                                          tc02Variant === 'h1'
+                                            ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                            : 'text-slate-600 hover:text-slate-900'
+                                        }`}
+                                      >
+                                        h1
+                                      </button>
+                                      <button
+                                        onClick={() => setTc02Variant('h2')}
+                                        className={`px-2 py-0.5 rounded-sm transition-all ${
+                                          tc02Variant === 'h2'
+                                            ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                            : 'text-slate-600 hover:text-slate-900'
+                                        }`}
+                                      >
+                                        h2
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[10px] text-slate-400 font-bold uppercase">offset:</span>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      max={255}
+                                      value={tc02Offset}
+                                      onChange={(e) => setTc02Offset(parseInt(e.target.value, 10) || 0)}
+                                      className="w-12 px-1 py-0.5 rounded border border-slate-300 text-center font-bold text-slate-700 bg-slate-50 focus:outline-none focus:border-[#00875a]"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+
+                              {mandatoryTC === 'TC-03' && (
+                                <div className="flex items-center gap-3 font-mono text-xs">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] text-slate-400 font-bold uppercase shrink-0">VARIANTE:</span>
+                                    <div className="flex items-center bg-slate-100 p-0.5 rounded text-xs font-medium">
+                                      <button
+                                        onClick={() => setTc03Variant('h3')}
+                                        className={`px-2 py-0.5 rounded-sm transition-all ${
+                                          tc03Variant === 'h3'
+                                            ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                            : 'text-slate-600 hover:text-slate-900'
+                                        }`}
+                                      >
+                                        h3 (+2)
+                                      </button>
+                                      <button
+                                        onClick={() => setTc03Variant('h4')}
+                                        className={`px-2 py-0.5 rounded-sm transition-all ${
+                                          tc03Variant === 'h4'
+                                            ? 'bg-white text-[#00875a] font-bold shadow-2xs'
+                                            : 'text-slate-600 hover:text-slate-900'
+                                        }`}
+                                      >
+                                        h4 (-8)
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[10px] text-slate-400 font-bold uppercase">offset:</span>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      max={255}
+                                      value={tc03Offset}
+                                      onChange={(e) => setTc03Offset(parseInt(e.target.value, 10) || 0)}
+                                      className="w-12 px-1 py-0.5 rounded border border-slate-300 text-center font-bold text-slate-700 bg-slate-50 focus:outline-none focus:border-[#00875a]"
+                                    />
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
