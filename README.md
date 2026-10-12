@@ -2,6 +2,8 @@
 
 Aplicação interativa de Processamento Digital de Imagens (PDI), desenvolvida para a avaliação prática (AV1) da disciplina de PDI no curso de **Ciência da Computação** da **UNIR** (Universidade Federal de Rondônia), 2026.
 
+**Acesso online:** [https://giujjia.github.io/mira-pdi/](https://giujjia.github.io/mira-pdi/)
+
 ## Sobre o Projeto
 
 O **MIRA** é um software de computação visual e laboratório interativo criado com um objetivo de **tornar visível e auditável cada operação matemática que transforma uma imagem digital**.
@@ -77,9 +79,9 @@ Para a avaliação prática da convolução, foram implementadas as máscaras ex
   $$h_3 = \begin{bmatrix} -1 & -1 & 0 \\ 1 & 0 & 1 \\ 0 & 1 & 1 \end{bmatrix} \quad (\Sigma = +2), \qquad h_4 = \begin{bmatrix} 0 & -1 & 0 \\ -1 & -4 & -1 \\ 0 & -1 & 0 \end{bmatrix} \quad (\Sigma = -8)$$
   Na máscara $h_4$, todos os pesos são negativos (soma $-8$). Sem offset, qualquer entrada positiva produz valores negativos, saturando a imagem inteira em preto no formato 8 bits tradicional. O MIRA mantém os valores reais no inspetor para permitir analisar exatamente esse comportamento na arguição.
 
----
 
-## 🚀 Como Executar Localmente
+
+## Como Executar Localmente
 
 ### Pré-requisitos
 * Node.js (versão 18 ou superior)
@@ -111,7 +113,7 @@ npm run build
 
 ---
 
-## 📁 Estrutura do Código
+## Estrutura do Código
 
 ```
 mira-pdi/
@@ -119,7 +121,7 @@ mira-pdi/
 │   ├── mira-cube.svg      # Logo oficial
 │   └── examples/          # Banco de imagens de teste (Cameraman, Lena, Barco, etc.)
 ├── src/
-│   ├── core/              # Implementações matemáticas puras em TypeScript
+│   ├── core/              # Implementações matemáticas em TypeScript
 │   ├── components/        # Componentes de UI (Canvas, PixelInspector, Sidebar, etc.)
 │   ├── education/         # Textos didáticos e passo a passo algébrico
 │   ├── App.tsx            # Componente central e gerenciador de estado
@@ -127,7 +129,7 @@ mira-pdi/
 └── tests/                 # testes unitários com Vitest
 ```
 
-## 🎓 Identificação
+## Identificação
 
 * **Instituição:** Fundação Universidade Federal de Rondônia (UNIR)
 * **Curso:** Bacharelado em Ciência da Computação
